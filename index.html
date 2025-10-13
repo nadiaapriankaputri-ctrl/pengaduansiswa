@@ -3,713 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Pengaduan Siswa</title>
-    <!-- Memuat Tailwind CSS -->
+    <title>Sistem Pengaduan Siswa (Lokal)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuat ikon Heroicons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/heroicons/2.1.1/24/solid/heroicons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Menggunakan font Inter yang modern */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Warna latar belakang abu-abu muda */
         }
-        /* Menambahkan transisi untuk semua elemen agar lebih halus */
-        * {
-            transition: all 0.2s ease-in-out;
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
-        /* Style untuk scrollbar agar lebih modern */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-        /* Class helper untuk menyembunyikan elemen */
-        .hidden {
-            display: none;
-        }
-        /* Styling untuk input file kustom */
-        input[type="file"]::file-selector-button {
-            @apply px-4 py-2 bg-gray-200 text-gray-700 font-semibold border-0 rounded-lg mr-4 cursor-pointer hover:bg-gray-300;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="antialiased text-gray-800">
+<body class="bg-gray-100 text-gray-800">
 
-    <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4">
-        
+    <!-- Container Utama -->
+    <div id="app" class="container mx-auto p-4 max-w-4xl">
+
         <!-- Halaman Login -->
-        <div id="login-page" class="w-full max-w-md">
-            <div class="bg-white shadow-xl rounded-2xl p-8 space-y-6">
-                <div class="text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-16 h-16 mx-auto text-blue-600">
-                        <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.5a.75.75 0 0 0 .5.707A9.735 9.735 0 0 0 6 21a9.707 9.707 0 0 0 5.25-1.533v-15Z" />
-                        <path d="M12.75 4.533A9.707 9.707 0 0 1 18 3a9.735 9.735 0 0 1 3.25.555.75.75 0 0 1 .5.707v14.5a.75.75 0 0 1-.5.707A9.735 9.735 0 0 1 18 21a9.707 9.707 0 0 1-5.25-1.533v-15Z" />
-                    </svg>
-                    <h1 class="text-3xl font-bold text-gray-900 mt-4">Portal Pengaduan Siswa</h1>
-                    <p class="text-gray-500 mt-1">Silakan masuk untuk melanjutkan</p>
-                </div>
+        <div id="loginPage">
+            <div class="bg-white p-8 rounded-xl shadow-lg max-w-md mx-auto mt-12">
+                <h1 class="text-3xl font-bold text-center text-gray-700 mb-2">Sistem Pengaduan Siswa</h1>
+                <p class="text-center text-gray-500 mb-8">Silakan masuk untuk melanjutkan</p>
                 
-                <form id="login-form" class="space-y-4">
+                <div class="space-y-4">
                     <div>
-                        <label for="nama" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                        <input type="text" id="nama" name="nama" required class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Masukkan nama Anda">
+                        <label for="studentName" class="block text-sm font-medium text-gray-600">Nama Lengkap</label>
+                        <input type="text" id="studentName" placeholder="Contoh: Budi Sanjaya" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    
                     <div>
-                        <label for="kelas" class="block text-sm font-medium text-gray-700">Kelas</label>
-                        <select id="kelas" name="kelas" required class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="" disabled selected>Pilih kelas Anda</option>
-                            <script>
-                                const kelasContainer = document.getElementById('kelas');
-                                const tingkatan = ['X', 'XI', 'XII'];
-                                const jurusan = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-                                tingkatan.forEach(t => {
-                                    const optgroup = document.createElement('optgroup');
-                                    optgroup.label = `Kelas ${t}`;
-                                    jurusan.forEach(j => {
-                                        const value = `${t}-${j}`;
-                                        const option = new Option(`Kelas ${value}`, value);
-                                        optgroup.appendChild(option);
-                                    });
-                                    kelasContainer.appendChild(optgroup);
-                                });
-                            </script>
+                        <label for="studentClass" class="block text-sm font-medium text-gray-600">Kelas</label>
+                        <select id="studentClass" class="form-select mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <!-- Opsi kelas akan di-generate oleh JavaScript -->
                         </select>
                     </div>
-
-                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <!-- Kolom Password Admin (Tersembunyi) -->
+                    <div id="adminPasswordContainer" class="hidden pt-2">
+                        <label for="adminPassword" class="block text-sm font-medium text-gray-600">Password Admin</label>
+                        <input type="password" id="adminPassword" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <p id="passwordError" class="text-red-600 text-sm mt-1 hidden">Password yang Anda masukkan salah.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                    <button id="loginStudentBtn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                         Masuk sebagai Siswa
                     </button>
-                </form>
-
-                <div class="text-center">
-                    <a href="#" id="kesiswaan-login-btn" class="text-sm font-medium text-blue-600 hover:text-blue-500">Masuk sebagai Kesiswaan</a>
-                </div>
-
-                <!-- Fitur Cek Status Pengaduan -->
-                <div class="mt-6 border-t pt-6">
-                    <h2 class="text-center text-lg font-semibold text-gray-800">Cek Status Pengaduan</h2>
-                    <p class="text-center text-sm text-gray-500 mt-1">Masukkan kode unik pengaduan Anda.</p>
-                    <form id="status-check-form" class="mt-4 flex gap-2">
-                        <input type="text" id="tracking-code-input" class="flex-grow block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg" placeholder="Contoh: ADU-...">
-                        <button type="submit" class="px-5 py-3 font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-lg">Cek</button>
-                    </form>
-                    <div id="status-check-result" class="mt-4"></div>
+                    <button id="loginAdminBtn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out">
+                        Masuk sebagai Admin
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Halaman Dasbor Siswa -->
-        <div id="student-dashboard" class="w-full max-w-4xl hidden">
-            <header class="bg-white shadow-md rounded-2xl p-4 mb-6 flex justify-between items-center">
+        <!-- Dasbor Siswa -->
+        <div id="studentDashboard" class="hidden">
+            <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md">
                 <div>
-                    <h2 class="text-2xl font-bold">Dasbor Siswa</h2>
-                    <p id="welcome-message" class="text-gray-600"></p>
+                    <h2 class="text-2xl font-bold text-gray-800">Dasbor Siswa</h2>
+                    <p id="welcomeMessage" class="text-gray-600"></p>
                 </div>
-                <button id="logout-btn-student" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Logout</button>
-            </header>
-
-            <main class="space-y-6">
-                <!-- Form Pengaduan Baru -->
-                <div class="bg-white shadow-lg rounded-2xl p-6">
-                    <h3 class="text-xl font-semibold mb-4">Buat Pengaduan Baru</h3>
-                    <form id="complaint-form" class="space-y-4">
-                        <div>
-                            <label for="complaint-category" class="block text-sm font-medium text-gray-700">Kategori Pengaduan</label>
-                            <select id="complaint-category" required class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="" disabled selected>Pilih Kategori</option>
-                                <option value="Bullying">Bullying</option>
-                                <option value="Fasilitas Sekolah">Fasilitas Sekolah</option>
-                                <option value="Akademik">Akademik</option>
-                                <option value="Sosial">Sosial</option>
-                                <option value="Lainnya">Lainnya</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="complaint-text" class="block text-sm font-medium text-gray-700">Isi Pengaduan</label>
-                            <textarea id="complaint-text" rows="4" required class="mt-1 w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Tuliskan pengaduan Anda di sini..."></textarea>
-                        </div>
-                        <div>
-                            <label for="complaint-attachment" class="block text-sm font-medium text-gray-700">Lampiran Bukti (Opsional)</label>
-                            <input type="file" id="complaint-attachment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                        </div>
-                         <!-- Progress Bar Upload -->
-                        <div id="upload-progress-container" class="hidden space-y-1">
-                             <p class="text-sm font-medium">Mengunggah file...</p>
-                             <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                 <div id="upload-progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
-                             </div>
-                        </div>
-                        <button type="submit" id="submit-complaint-btn" class="px-6 py-2 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400">Kirim Pengaduan</button>
-                    </form>
-                </div>
-
-                <!-- Daftar Pengaduan Siswa -->
-                <div class="bg-white shadow-lg rounded-2xl p-6">
-                    <h3 class="text-xl font-semibold mb-4">Riwayat Pengaduan Anda</h3>
-                    <div id="complaint-list" class="space-y-4">
-                        <!-- Pengaduan akan ditampilkan di sini -->
-                        <p class="text-gray-500 text-center py-4">Belum ada pengaduan yang Anda buat.</p>
-                    </div>
-                </div>
-            </main>
-        </div>
-        
-        <!-- Halaman Dasbor Kesiswaan -->
-        <div id="admin-dashboard" class="w-full max-w-6xl hidden">
-             <header class="bg-white shadow-md rounded-2xl p-4 mb-6 flex justify-between items-center">
-                <div>
-                    <h2 class="text-2xl font-bold">Dasbor Kesiswaan</h2>
-                    <p class="text-gray-600">Selamat datang, Kesiswaan. Berikut adalah semua pengaduan yang masuk.</p>
-                </div>
-                <button id="logout-btn-admin" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Logout</button>
-            </header>
-
-            <main class="bg-white shadow-lg rounded-2xl p-6">
-                <div id="admin-complaint-list" class="space-y-4">
-                    <!-- Semua pengaduan akan ditampilkan di sini -->
-                    <p class="text-gray-500 text-center py-8">Tidak ada pengaduan yang masuk saat ini.</p>
-                </div>
-            </main>
-        </div>
-
-        <!-- Modal untuk Kesiswaan -->
-        <div id="admin-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4 transform transition-all scale-95 opacity-0 overflow-y-auto max-h-screen" id="modal-content">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold">Detail Pengaduan</h3>
-                    <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
-                </div>
-                <div class="border-t pt-4 space-y-3">
-                    <p><strong>Nama:</strong> <span id="modal-nama"></span></p>
-                    <p><strong>Kelas:</strong> <span id="modal-kelas"></span></p>
-                    <p><strong>Kategori:</strong> <span id="modal-kategori" class="font-semibold text-purple-700"></span></p>
-                    <p><strong>Tanggal:</strong> <span id="modal-tanggal"></span></p>
-                    <p><strong>Kode Unik:</strong> <span id="modal-kode" class="font-mono text-blue-700"></span></p>
-                    <div class="bg-gray-100 p-3 rounded-lg">
-                       <p class="font-semibold">Isi Pengaduan:</p>
-                       <p id="modal-isi"></p>
-                    </div>
-                    <!-- Tampilan Lampiran -->
-                    <div id="modal-attachment-container"></div>
-                </div>
-                <div class="border-t pt-4">
-                     <h4 class="text-lg font-semibold mb-2">Tanggapan & Status</h4>
-                     <form id="admin-update-form">
-                         <input type="hidden" id="modal-complaint-id">
-                         <div>
-                             <label for="modal-tanggapan" class="block text-sm font-medium text-gray-700">Beri Tanggapan</label>
-                             <textarea id="modal-tanggapan" rows="3" class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
-                         </div>
-                         <div class="mt-3">
-                             <label for="modal-status" class="block text-sm font-medium text-gray-700">Ubah Status</label>
-                             <select id="modal-status" class="mt-1 w-full p-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                 <option value="Dikirim">Dikirim</option>
-                                 <option value="Diproses">Diproses</option>
-                                 <option value="Selesai">Selesai</option>
-                             </select>
-                         </div>
-                         <div class="mt-4 flex justify-end space-x-3">
-                            <button type="button" id="cancel-modal-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
-                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan Perubahan</button>
-                         </div>
-                     </form>
-                </div>
+                <button id="logoutBtnStudent" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition">Keluar</button>
             </div>
-        </div>
-
-        <!-- Modal Sukses Kirim Pengaduan -->
-        <div id="code-success-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center space-y-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 class="text-2xl font-bold">Pengaduan Terkirim!</h3>
-                <p class="text-gray-600">Simpan kode unik berikut untuk melacak status pengaduan Anda:</p>
-                <div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-3">
-                    <p id="generated-code" class="text-xl font-mono font-bold text-gray-800"></p>
-                </div>
-                <button id="close-code-modal-btn" class="w-full mt-4 px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Tutup</button>
-            </div>
-        </div>
-        
-        <!-- Modal Login Kesiswaan -->
-        <div id="admin-login-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold">Login Kesiswaan</h3>
-                    <button id="close-admin-login-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
-                </div>
-                <p class="text-sm text-gray-600">Silakan masukkan kode akses untuk melanjutkan.</p>
-                <form id="admin-login-form">
-                    <input type="password" id="admin-code-input" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg" placeholder="Kode Akses">
-                    <p id="admin-login-error" class="text-red-500 text-sm mt-2 hidden"></p>
-                    <button type="submit" class="w-full mt-4 px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Masuk</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase SDK -->
-    <script type="module">
-        // Konfigurasi Firebase Anda akan dimuat secara otomatis oleh lingkungan Canvas
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-
-        // Inisialisasi Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const storage = getStorage(app); // Inisialisasi Firebase Storage
-
-        // State aplikasi
-        let currentUser = null;
-        let userSession = null;
-        let unsubscribeStudentComplaints = null;
-        let unsubscribeAdminComplaints = null;
-
-        // Path collection di Firestore
-        const complaintsCollectionPath = `/artifacts/${appId}/public/data/pengaduan`;
-
-        // Elemen DOM
-        const loginPage = document.getElementById('login-page');
-        const studentDashboard = document.getElementById('student-dashboard');
-        const adminDashboard = document.getElementById('admin-dashboard');
-        
-        // Fungsi untuk merender halaman berdasarkan state
-        function renderPage() {
-            loginPage.classList.add('hidden');
-            studentDashboard.classList.add('hidden');
-            adminDashboard.classList.add('hidden');
-
-            if (!userSession) {
-                loginPage.classList.remove('hidden');
-            } else if (userSession.role === 'siswa') {
-                studentDashboard.classList.remove('hidden');
-                document.getElementById('welcome-message').textContent = `Selamat datang, ${userSession.nama} (Kelas ${userSession.kelas})`;
-                fetchStudentComplaints();
-            } else if (userSession.role === 'kesiswaan') {
-                adminDashboard.classList.remove('hidden');
-                fetchAllComplaints();
-            }
-        }
-        
-        // --- FUNGSI HELPER ---
-
-        // Fungsi untuk mendapatkan badge status
-        function getStatusBadge(status) {
-            switch (status) {
-                case 'Dikirim':
-                    return `<span class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">${status}</span>`;
-                case 'Diproses':
-                    return `<span class="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">${status}</span>`;
-                case 'Selesai':
-                    return `<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">${status}</span>`;
-                default:
-                    return `<span class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 rounded-full">${status}</span>`;
-            }
-        }
-
-        // Fungsi untuk membuat kode unik
-        function generateTrackingCode() {
-            const timestamp = Date.now().toString(36).toUpperCase();
-            const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
-            return `ADU-${timestamp}${randomPart}`;
-        }
-        
-        // Fungsi untuk merender tampilan lampiran
-        function renderAttachment(url, fileName) {
-            if (!url) return '';
             
-            const fileType = fileName.split('.').pop().toLowerCase();
-            const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            const videoTypes = ['mp4', 'webm', 'ogg'];
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Laporan Saya</h3>
+                    <button id="newReportBtn" class="bg-green-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-600 transition">Buat Laporan Baru</button>
+                </div>
+                <div id="studentReports" class="space-y-4">
+                    <!-- Laporan siswa akan ditampilkan di sini -->
+                </div>
+            </div>
+        </div>
 
-            if (imageTypes.includes(fileType)) {
-                return `<a href="${url}" target="_blank" class="block mt-2"><img src="${url}" alt="Lampiran bukti" class="max-w-xs rounded-lg shadow-md"></a>`;
-            } else if (videoTypes.includes(fileType)) {
-                 return `<video controls class="w-full rounded-lg mt-2"><source src="${url}" type="video/${fileType}">Browser Anda tidak mendukung tag video.</video>`;
-            } else {
-                 return `
-                    <div class="mt-2">
-                        <a href="${url}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">
-                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" clip-rule="evenodd" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
-                            <span>Lihat/Unduh Lampiran</span>
-                        </a>
-                    </div>`;
-            }
-        }
+        <!-- Dasbor Admin -->
+        <div id="adminDashboard" class="hidden">
+             <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Panel Admin</h2>
+                    <p class="text-gray-600">Tinjau dan kelola semua laporan yang masuk.</p>
+                </div>
+                <button id="logoutBtnAdmin" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition">Keluar</button>
+            </div>
+             <div class="bg-white p-6 rounded-xl shadow-md">
+                 <h3 class="text-xl font-semibold mb-4">Semua Laporan Masuk</h3>
+                 <div id="adminReports" class="space-y-4">
+                     <!-- Semua laporan akan ditampilkan di sini -->
+                 </div>
+            </div>
+        </div>
+        
+        <!-- Modal Form Laporan Baru -->
+        <div id="reportModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg transform transition-all" id="reportModalContent">
+                <h2 class="text-2xl font-bold mb-6">Buat Laporan Pengaduan</h2>
+                <form id="reportForm" class="space-y-4">
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-700">Kategori</label>
+                        <select id="category" name="category" required class="form-select mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="Fasilitas">Fasilitas & Infrastruktur</option>
+                            <option value="Kebersihan">Kebersihan & Lingkungan</option>
+                            <option value="Pembelajaran">Proses Belajar Mengajar</option>
+                            <option value="Perundungan">Perundungan (Bullying)</option>
+                            <option value="Keamanan">Keamanan</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Deskripsi Laporan</label>
+                        <textarea id="description" name="description" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Jelaskan laporan Anda secara detail..."></textarea>
+                    </div>
+                    <div>
+                        <label for="media" class="block text-sm font-medium text-gray-700">Lampirkan Foto/Video (Opsional)</label>
+                        <input type="file" id="media" name="media" accept="image/*,video/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <img id="imagePreview" src="" alt="Pratinjau Gambar" class="hidden mt-4 rounded-md max-h-40 w-auto"/>
+                    </div>
+                    <div class="flex justify-end gap-4 pt-4">
+                        <button type="button" id="cancelReportBtn" class="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition">Batal</button>
+                        <button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center">
+                            <span id="submitText">Kirim Laporan</span>
+                            <div id="submitLoader" class="loader w-4 h-4 rounded-full border-2 border-gray-200 ml-2 hidden"></div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
+    </div> <!-- End #app -->
 
-        // --- LOGIKA SISWA ---
-        function fetchStudentComplaints() {
-            if (unsubscribeStudentComplaints) unsubscribeStudentComplaints();
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // State aplikasi
+            let currentUser = null;
 
-            const q = query(collection(db, complaintsCollectionPath), where("userId", "==", currentUser.uid));
-            unsubscribeStudentComplaints = onSnapshot(q, (querySnapshot) => {
-                const complaintList = document.getElementById('complaint-list');
-                if (querySnapshot.empty) {
-                    complaintList.innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada pengaduan yang Anda buat.</p>`;
+            // Elemen-elemen DOM
+            const loginPage = document.getElementById('loginPage');
+            const studentDashboard = document.getElementById('studentDashboard');
+            const adminDashboard = document.getElementById('adminDashboard');
+            const reportModal = document.getElementById('reportModal');
+            const studentNameInput = document.getElementById('studentName');
+            const studentClassSelect = document.getElementById('studentClass');
+            const imagePreview = document.getElementById('imagePreview');
+            const mediaInput = document.getElementById('media');
+            const adminPasswordContainer = document.getElementById('adminPasswordContainer');
+            const adminPasswordInput = document.getElementById('adminPassword');
+            const passwordError = document.getElementById('passwordError');
+
+            // --- FUNGSI DATA LOCALSTORAGE ---
+            const getAllReports = () => {
+                const reports = localStorage.getItem('studentReports');
+                return reports ? JSON.parse(reports) : [];
+            };
+
+            const saveAllReports = (reports) => {
+                localStorage.setItem('studentReports', JSON.stringify(reports));
+            };
+
+            // --- FUNGSI UTILITAS ---
+            const showPage = (page) => {
+                loginPage.classList.add('hidden');
+                studentDashboard.classList.add('hidden');
+                adminDashboard.classList.add('hidden');
+                page.classList.remove('hidden');
+            };
+            
+            const getStatusBadge = (status) => {
+                switch (status) {
+                    case 'Terkirim': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">${status}</span>`;
+                    case 'Diproses': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800">${status}</span>`;
+                    case 'Selesai': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">${status}</span>`;
+                    case 'Ditolak': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">${status}</span>`;
+                    default: return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800">${status}</span>`;
+                }
+            };
+
+            const generateClassOptions = () => {
+                const grades = ['X', 'XI', 'XII'];
+                const majors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+                let options = '<option value="">-- Pilih Kelas --</option>';
+                grades.forEach(grade => {
+                    majors.forEach(major => {
+                        const className = `${grade}${major}`;
+                        options += `<option value="${className}">${className}</option>`;
+                    });
+                });
+                studentClassSelect.innerHTML = options;
+            };
+
+            const generateReportCode = () => {
+                const date = new Date();
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
+                return `LPR-${year}${month}${day}-${randomChars}`;
+            };
+            
+            // --- LOGIKA APLIKASI ---
+            const handleLogin = (role) => {
+                const name = studentNameInput.value.trim();
+                const studentClass = studentClassSelect.value;
+                passwordError.classList.add('hidden');
+
+                if (role === 'admin') {
+                    adminPasswordContainer.classList.remove('hidden');
+                    const password = adminPasswordInput.value;
+                    if (password !== 'smanida1223') { // Ganti password jika perlu
+                        if (password) passwordError.classList.remove('hidden');
+                        return;
+                    }
+                } else {
+                    adminPasswordContainer.classList.add('hidden');
+                }
+                
+                if (!name) { alert('Nama tidak boleh kosong.'); return; }
+                if (role === 'student' && !studentClass) { alert('Silakan pilih kelas Anda.'); return; }
+
+                currentUser = { 
+                    name, 
+                    class: studentClass, 
+                    role,
+                    uid: crypto.randomUUID() // ID unik untuk setiap sesi login siswa
+                };
+                
+                sessionStorage.setItem('user', JSON.stringify(currentUser));
+
+                if (role === 'student') {
+                    document.getElementById('welcomeMessage').innerText = `Selamat datang, ${name} dari kelas ${studentClass}`;
+                    showPage(studentDashboard);
+                    renderStudentReports();
+                } else {
+                    showPage(adminDashboard);
+                    renderAdminReports();
+                }
+            };
+
+            const handleLogout = () => {
+                currentUser = null;
+                sessionStorage.removeItem('user');
+                studentNameInput.value = '';
+                studentClassSelect.value = '';
+                adminPasswordInput.value = '';
+                adminPasswordContainer.classList.add('hidden');
+                passwordError.classList.add('hidden');
+                showPage(loginPage);
+            };
+            
+            const renderStudentReports = () => {
+                const container = document.getElementById('studentReports');
+                const allReports = getAllReports();
+                const myReports = allReports.filter(report => report.studentUid === currentUser.uid);
+                
+                myReports.sort((a, b) => b.createdAt - a.createdAt);
+
+                if (myReports.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada laporan yang dibuat.</p>`;
                     return;
                 }
-                complaintList.innerHTML = '';
-                const complaints = querySnapshot.docs.sort((a, b) => b.data().tanggal.seconds - a.data().tanggal.seconds);
-                complaints.forEach((doc) => {
-                    const complaint = doc.data();
-                    const complaintDate = complaint.tanggal.toDate().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-                    const complaintCard = `
-                        <div class="border rounded-lg p-4 bg-gray-50 shadow-sm">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-gray-600 text-sm">${complaintDate}</p>
-                                    <p class="text-xs text-gray-500 font-mono mt-1">Kode: ${complaint.kodePengaduan || 'N/A'}</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-200 rounded-full">${complaint.kategori || 'Umum'}</span>
-                                    ${getStatusBadge(complaint.status)}
-                                </div>
+                container.innerHTML = myReports.map(report => `
+                    <div class="border border-gray-200 p-4 rounded-lg hover:bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-gray-700">${report.category}</p>
+                                <p class="text-xs font-mono text-gray-500 mt-1">${report.reportCode || 'N/A'}</p>
                             </div>
-                            <p class="mt-2">${complaint.isiPengaduan}</p>
-                            ${renderAttachment(complaint.attachmentURL, complaint.attachmentFileName)}
-                            ${complaint.tanggapan ? `
-                                <div class="mt-3 pt-3 border-t border-gray-200">
-                                    <p class="font-semibold text-sm text-green-700">Tanggapan Kesiswaan:</p>
-                                    <p class="text-sm text-gray-700 italic">"${complaint.tanggapan}"</p>
-                                </div>
-                            ` : ''}
+                            ${getStatusBadge(report.status)}
                         </div>
-                    `;
-                    complaintList.innerHTML += complaintCard;
-                });
-            });
-        }
+                        <p class="mt-2 text-gray-600">${report.description}</p>
+                        <p class="text-right text-sm text-gray-500 mt-2">${new Date(report.createdAt).toLocaleString('id-ID')}</p>
+                    </div>
+                `).join('');
+            };
+            
+            const renderAdminReports = () => {
+                const container = document.getElementById('adminReports');
+                const allReports = getAllReports();
+                allReports.sort((a, b) => b.createdAt - a.createdAt);
 
-        document.getElementById('complaint-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submit-complaint-btn');
-            submitBtn.disabled = true;
-
-            const complaintCategory = document.getElementById('complaint-category').value;
-            const complaintText = document.getElementById('complaint-text').value;
-            const attachmentFile = document.getElementById('complaint-attachment').files[0];
-
-            if (!complaintText.trim() || !complaintCategory) {
-                alert('Kategori dan isi pengaduan tidak boleh kosong.');
-                submitBtn.disabled = false;
-                return;
-            }
-
-            // Fungsi untuk menambahkan data ke Firestore
-            const addComplaintToFirestore = async (attachmentData = {}) => {
-                 try {
-                    const trackingCode = generateTrackingCode();
-                    await addDoc(collection(db, complaintsCollectionPath), {
-                        namaSiswa: userSession.nama,
-                        kelasSiswa: userSession.kelas,
-                        userId: currentUser.uid,
-                        kategori: complaintCategory,
-                        isiPengaduan: complaintText,
-                        status: 'Dikirim',
-                        tanggapan: '',
-                        tanggal: serverTimestamp(),
-                        kodePengaduan: trackingCode,
-                        ...attachmentData
+                if (allReports.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500 text-center py-4">Tidak ada laporan yang masuk.</p>`;
+                    return;
+                }
+                container.innerHTML = allReports.map(report => `
+                    <div class="border border-gray-200 p-4 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                            <div>
+                                <p class="font-bold">${report.studentName}</p>
+                                <p class="text-sm text-gray-500">Kelas: ${report.studentClass}</p>
+                                <p class="text-xs font-mono text-gray-500 mt-1">${report.reportCode || 'N/A'}</p>
+                                <p class="text-sm text-gray-500 mt-1">${new Date(report.createdAt).toLocaleString('id-ID')}</p>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-700">${report.category}</p>
+                                <p class="mt-1 text-gray-600">${report.description}</p>
+                            </div>
+                            <div class="flex flex-col items-start md:items-end gap-2">
+                                ${getStatusBadge(report.status)}
+                                <select data-id="${report.id}" class="status-changer form-select text-sm mt-2 block w-full md:w-auto px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="Terkirim" ${report.status === 'Terkirim' ? 'selected' : ''}>Terkirim</option>
+                                    <option value="Diproses" ${report.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
+                                    <option value="Selesai" ${report.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                                    <option value="Ditolak" ${report.status === 'Ditolak' ? 'selected' : ''}>Ditolak</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.status-changer').forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        const reportId = e.target.dataset.id;
+                        const newStatus = e.target.value;
+                        const reports = getAllReports();
+                        const reportIndex = reports.findIndex(r => r.id == reportId);
+                        if (reportIndex > -1) {
+                            reports[reportIndex].status = newStatus;
+                            saveAllReports(reports);
+                            renderAdminReports(); // Re-render untuk menampilkan badge yang diperbarui
+                        }
                     });
-                    document.getElementById('complaint-form').reset();
-                    document.getElementById('generated-code').textContent = trackingCode;
-                    document.getElementById('code-success-modal').classList.remove('hidden');
-                } catch (error) {
-                    console.error("Error adding complaint:", error);
-                    alert('Terjadi kesalahan saat mengirim pengaduan.');
-                } finally {
-                    document.getElementById('upload-progress-container').classList.add('hidden');
-                    submitBtn.disabled = false;
+                });
+            };
+            
+            const handleFormSubmit = (e) => {
+                e.preventDefault();
+                document.getElementById('submitText').classList.add('hidden');
+                document.getElementById('submitLoader').classList.remove('hidden');
+
+                const newReport = {
+                    id: Date.now(),
+                    studentName: currentUser.name,
+                    studentClass: currentUser.class,
+                    studentUid: currentUser.uid,
+                    category: e.target.category.value,
+                    description: e.target.description.value,
+                    status: "Terkirim",
+                    createdAt: Date.now(),
+                    reportCode: generateReportCode()
+                };
+                
+                const reports = getAllReports();
+                reports.push(newReport);
+                saveAllReports(reports);
+
+                setTimeout(() => { // Simulasi loading
+                    reportModal.classList.add('hidden');
+                    e.target.reset();
+                    imagePreview.classList.add('hidden');
+                    document.getElementById('submitText').classList.remove('hidden');
+                    document.getElementById('submitLoader').classList.add('hidden');
+                    renderStudentReports();
+                }, 500);
+            };
+
+            // --- EVENT LISTENERS ---
+            document.getElementById('loginStudentBtn').addEventListener('click', () => handleLogin('student'));
+            document.getElementById('loginAdminBtn').addEventListener('click', () => handleLogin('admin'));
+            document.getElementById('logoutBtnStudent').addEventListener('click', handleLogout);
+            document.getElementById('logoutBtnAdmin').addEventListener('click', handleLogout);
+
+            document.getElementById('newReportBtn').addEventListener('click', () => reportModal.classList.remove('hidden'));
+            document.getElementById('cancelReportBtn').addEventListener('click', () => {
+                reportModal.classList.add('hidden');
+                document.getElementById('reportForm').reset();
+                imagePreview.classList.add('hidden');
+            });
+            document.getElementById('reportForm').addEventListener('submit', handleFormSubmit);
+
+            mediaInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        imagePreview.src = event.target.result;
+                        imagePreview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.classList.add('hidden');
+                }
+            });
+
+            // --- INISIALISASI APLIKASI ---
+            const checkSession = () => {
+                const savedUser = sessionStorage.getItem('user');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    if (currentUser.role === 'student') {
+                        document.getElementById('welcomeMessage').innerText = `Selamat datang kembali, ${currentUser.name} dari kelas ${currentUser.class}`;
+                        showPage(studentDashboard);
+                        renderStudentReports();
+                    } else {
+                        showPage(adminDashboard);
+                        renderAdminReports();
+                    }
+                } else {
+                    showPage(loginPage);
                 }
             };
             
-            // Jika ada file lampiran, upload terlebih dahulu
-            if (attachmentFile) {
-                const progressContainer = document.getElementById('upload-progress-container');
-                const progressBar = document.getElementById('upload-progress-bar');
-                progressContainer.classList.remove('hidden');
-
-                const uniqueFileName = `${Date.now()}-${attachmentFile.name}`;
-                const storageRef = ref(storage, `attachments/${currentUser.uid}/${uniqueFileName}`);
-                const uploadTask = uploadBytesResumable(storageRef, attachmentFile);
-
-                uploadTask.on('state_changed', 
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        progressBar.style.width = progress + '%';
-                    }, 
-                    (error) => {
-                        console.error("Upload failed:", error);
-                        alert('Gagal mengunggah file lampiran.');
-                        progressContainer.classList.add('hidden');
-                        submitBtn.disabled = false;
-                    }, 
-                    async () => {
-                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        addComplaintToFirestore({
-                            attachmentURL: downloadURL,
-                            attachmentFileName: attachmentFile.name
-                        });
-                    }
-                );
-            } else {
-                // Jika tidak ada lampiran, langsung simpan
-                addComplaintToFirestore();
-            }
+            generateClassOptions();
+            checkSession();
         });
-
-        // --- LOGIKA KESISWAAN ---
-        function fetchAllComplaints() {
-            if (unsubscribeAdminComplaints) unsubscribeAdminComplaints();
-        
-            const q = query(collection(db, complaintsCollectionPath));
-            unsubscribeAdminComplaints = onSnapshot(q, (querySnapshot) => {
-                const adminComplaintList = document.getElementById('admin-complaint-list');
-                if (querySnapshot.empty) {
-                    adminComplaintList.innerHTML = `<p class="text-gray-500 text-center py-8">Tidak ada pengaduan yang masuk saat ini.</p>`;
-                    return;
-                }
-                adminComplaintList.innerHTML = '';
-                const complaints = querySnapshot.docs.sort((a, b) => b.data().tanggal.seconds - a.data().tanggal.seconds);
-                complaints.forEach((doc) => {
-                    const complaint = doc.data();
-                    const complaintDate = complaint.tanggal.toDate().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
-                    const adminCard = `
-                        <div class="border rounded-lg p-4 hover:shadow-md hover:bg-blue-50 cursor-pointer" data-id="${doc.id}">
-                            <div class="flex justify-between items-center">
-                                <div class="font-bold">${complaint.namaSiswa} - Kelas ${complaint.kelasSiswa}</div>
-                                <div class="flex items-center gap-2">
-                                    ${complaint.attachmentURL ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-gray-500"><path fill-rule="evenodd" d="M15.621 4.379a3 3 0 0 0-4.242 0l-7 7a3 3 0 0 0 4.241 4.243h.001l.497-.5a.75.75 0 0 1 1.064 1.057l-.498.501-.002.002a4.5 4.5 0 0 1-6.364-6.364l7-7a4.5 4.5 0 0 1 6.368 6.36l-3.455 3.553A2.625 2.625 0 1 1 9.52 9.52l3.45-3.55a.75.75 0 0 1 1.064 1.06l-3.45 3.55a1.125 1.125 0 0 0 1.591 1.59l3.455-3.553a3 3 0 0 0 0-4.242Z" clip-rule="evenodd" /></svg>' : ''}
-                                    <span class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-200 rounded-full">${complaint.kategori || 'Umum'}</span>
-                                    ${getStatusBadge(complaint.status)}
-                                </div>
-                            </div>
-                            <p class="text-sm text-gray-500 mt-1">Tanggal: ${complaintDate}</p>
-                            <p class="mt-2 truncate">${complaint.isiPengaduan}</p>
-                            <p class="text-xs text-gray-500 font-mono mt-2">Kode: ${complaint.kodePengaduan || 'N/A'}</p>
-                        </div>
-                    `;
-                    adminComplaintList.innerHTML += adminCard;
-                });
-                document.querySelectorAll('#admin-complaint-list [data-id]').forEach(card => {
-                    card.addEventListener('click', () => {
-                        const docId = card.getAttribute('data-id');
-                        const complaintData = querySnapshot.docs.find(d => d.id === docId).data();
-                        openAdminModal(docId, complaintData);
-                    });
-                });
-            });
-        }
-        
-        function openAdminModal(id, data) {
-            const modal = document.getElementById('admin-modal');
-            const modalContent = document.getElementById('modal-content');
-            
-            document.getElementById('modal-complaint-id').value = id;
-            document.getElementById('modal-nama').textContent = data.namaSiswa;
-            document.getElementById('modal-kelas').textContent = data.kelasSiswa;
-            document.getElementById('modal-kategori').textContent = data.kategori || 'Umum';
-            document.getElementById('modal-tanggal').textContent = data.tanggal.toDate().toLocaleString('id-ID');
-            document.getElementById('modal-isi').textContent = data.isiPengaduan;
-            document.getElementById('modal-kode').textContent = data.kodePengaduan || 'Tidak ada';
-            document.getElementById('modal-tanggapan').value = data.tanggapan || '';
-            document.getElementById('modal-status').value = data.status;
-
-            // Render lampiran di modal
-            const attachmentContainer = document.getElementById('modal-attachment-container');
-            attachmentContainer.innerHTML = '';
-            if (data.attachmentURL) {
-                attachmentContainer.innerHTML = `<p class="font-semibold">Lampiran:</p>` + renderAttachment(data.attachmentURL, data.attachmentFileName);
-            }
-
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.remove('scale-95', 'opacity-0');
-            }, 10);
-        }
-
-        function closeAdminModal() {
-            const modal = document.getElementById('admin-modal');
-            const modalContent = document.getElementById('modal-content');
-
-            modalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
-        }
-
-        document.getElementById('admin-update-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('modal-complaint-id').value;
-            const tanggapan = document.getElementById('modal-tanggapan').value;
-            const status = document.getElementById('modal-status').value;
-
-            const docRef = doc(db, complaintsCollectionPath, id);
-            try {
-                await updateDoc(docRef, { tanggapan, status });
-                closeAdminModal();
-            } catch (error) {
-                console.error("Error updating document: ", error);
-            }
-        });
-        
-        document.getElementById('close-code-modal-btn').addEventListener('click', () => {
-            document.getElementById('code-success-modal').classList.add('hidden');
-        });
-
-        document.getElementById('close-modal-btn').addEventListener('click', closeAdminModal);
-        document.getElementById('cancel-modal-btn').addEventListener('click', closeAdminModal);
-
-
-        // --- LOGIKA LOGIN & LOGOUT ---
-        document.getElementById('login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const nama = document.getElementById('nama').value;
-            const kelas = document.getElementById('kelas').value;
-            if (nama && kelas) {
-                userSession = { role: 'siswa', nama, kelas };
-                sessionStorage.setItem('userSession', JSON.stringify(userSession));
-                renderPage();
-            }
-        });
-        
-        document.getElementById('kesiswaan-login-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('admin-login-modal').classList.remove('hidden');
-        });
-
-        document.getElementById('close-admin-login-btn').addEventListener('click', () => {
-            const modal = document.getElementById('admin-login-modal');
-            modal.classList.add('hidden');
-            document.getElementById('admin-login-error').classList.add('hidden');
-            document.getElementById('admin-code-input').value = '';
-        });
-
-        document.getElementById('admin-login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const codeInput = document.getElementById('admin-code-input');
-            const errorMsg = document.getElementById('admin-login-error');
-            const correctCode = 'smanidamaju23';
-
-            if (codeInput.value === correctCode) {
-                userSession = { role: 'kesiswaan' };
-                sessionStorage.setItem('userSession', JSON.stringify(userSession));
-                renderPage();
-                
-                // Tutup dan reset modal
-                const modal = document.getElementById('admin-login-modal');
-                modal.classList.add('hidden');
-                errorMsg.classList.add('hidden');
-                codeInput.value = '';
-            } else {
-                errorMsg.textContent = 'Kode akses salah. Silakan coba lagi.';
-                errorMsg.classList.remove('hidden');
-                codeInput.value = '';
-            }
-        });
-
-
-        function logout() {
-            userSession = null;
-            sessionStorage.removeItem('userSession');
-            if (unsubscribeStudentComplaints) unsubscribeStudentComplaints();
-            if (unsubscribeAdminComplaints) unsubscribeAdminComplaints();
-            renderPage();
-        }
-
-        document.getElementById('logout-btn-student').addEventListener('click', logout);
-        document.getElementById('logout-btn-admin').addEventListener('click', logout);
-
-        // --- LOGIKA CEK STATUS ---
-        document.getElementById('status-check-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const trackingCode = document.getElementById('tracking-code-input').value.trim().toUpperCase();
-            const resultDiv = document.getElementById('status-check-result');
-            resultDiv.innerHTML = `<p class="text-center text-blue-600">Mencari...</p>`;
-
-            if (!trackingCode) {
-                resultDiv.innerHTML = `<p class="text-center text-red-600">Silakan masukkan kode pengaduan.</p>`;
-                return;
-            }
-
-            try {
-                const q = query(collection(db, complaintsCollectionPath), where("kodePengaduan", "==", trackingCode));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    resultDiv.innerHTML = `<p class="text-center text-red-600">Kode pengaduan tidak ditemukan.</p>`;
-                } else {
-                    const complaintData = querySnapshot.docs[0].data();
-                    const complaintDate = complaintData.tanggal.toDate().toLocaleString('id-ID');
-                    resultDiv.innerHTML = `
-                        <div class="border rounded-lg p-4 bg-gray-50 text-left">
-                            <div class="flex justify-between items-center">
-                                <h4 class="font-bold">Hasil Pencarian</h4>
-                                ${getStatusBadge(complaintData.status)}
-                            </div>
-                            <p class="text-sm text-gray-500 mt-1">Tanggal: ${complaintDate}</p>
-                            <p class="mt-2"><strong>Pengaduan:</strong> ${complaintData.isiPengaduan}</p>
-                            ${renderAttachment(complaintData.attachmentURL, complaintData.attachmentFileName)}
-                            ${complaintData.tanggapan ? `
-                                <div class="mt-3 pt-3 border-t">
-                                    <p class="font-semibold text-green-700">Tanggapan:</p>
-                                    <p class="italic">"${complaintData.tanggapan}"</p>
-                                </div>
-                            ` : '<p class="mt-2 text-gray-500">Belum ada tanggapan.</p>'}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error("Error checking status: ", error);
-                resultDiv.innerHTML = `<p class="text-center text-red-600">Terjadi kesalahan saat memeriksa status.</p>`;
-            }
-        });
-
-
-        // Inisialisasi Aplikasi
-        window.addEventListener('DOMContentLoaded', () => {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUser = user;
-                    const savedSession = sessionStorage.getItem('userSession');
-                    if (savedSession) {
-                        userSession = JSON.parse(savedSession);
-                    }
-                    renderPage();
-                } else {
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Authentication error:", error);
-                    }
-                }
-            });
-        });
-
     </script>
 </body>
 </html>
+
