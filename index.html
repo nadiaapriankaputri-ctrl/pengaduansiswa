@@ -1,425 +1,1158 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pengaduan Siswa (Lokal)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .form-select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        .loader {
-            border-top-color: #3498db;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-800">
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { initializeApp } from "firebase/app";
+import { 
+    getAuth, 
+    onAuthStateChanged, 
+    signInAnonymously,
+    signInWithCustomToken
+} from "firebase/auth";
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    query, 
+    where, 
+    onSnapshot, 
+    serverTimestamp,
+    doc,
+    updateDoc,
+    getDocs,
+    setLogLevel
+} from "firebase/firestore";
+import { 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    Legend, 
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell
+} from 'recharts';
+import { 
+    Users, 
+    UserCheck, 
+    Shield, 
+    FileText, 
+    MessageSquare, 
+    BarChart2, 
+    LogIn, 
+    LogOut, 
+    Send, 
+    Upload,
+    ArrowRight,
+    Loader2,
+    Check,
+    X,
+    Inbox,
+    CheckCheck // Tambahkan CheckCheck
+} from 'lucide-react';
 
-    <!-- Container Utama -->
-    <div id="app" class="container mx-auto p-4 max-w-4xl">
+// --- Firebase Configuration ---
+// Variabel-variabel ini akan disediakan oleh lingkungan Canvas
+const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        <!-- Halaman Login -->
-        <div id="loginPage">
-            <div class="bg-white p-8 rounded-xl shadow-lg max-w-md mx-auto mt-12">
-                <h1 class="text-3xl font-bold text-center text-gray-700 mb-2">Sistem Pengaduan Siswa</h1>
-                <p class="text-center text-gray-500 mb-8">Silakan masuk untuk melanjutkan</p>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label for="studentName" class="block text-sm font-medium text-gray-600">Nama Lengkap</label>
-                        <input type="text" id="studentName" placeholder="Contoh: Budi Sanjaya" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label for="studentClass" class="block text-sm font-medium text-gray-600">Kelas</label>
-                        <select id="studentClass" class="form-select mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                            <!-- Opsi kelas akan di-generate oleh JavaScript -->
-                        </select>
-                    </div>
-                    <!-- Kolom Password Admin (Tersembunyi) -->
-                    <div id="adminPasswordContainer" class="hidden pt-2">
-                        <label for="adminPassword" class="block text-sm font-medium text-gray-600">Password Admin</label>
-                        <input type="password" id="adminPassword" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <p id="passwordError" class="text-red-600 text-sm mt-1 hidden">Password yang Anda masukkan salah.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-8 flex flex-col sm:flex-row gap-4">
-                    <button id="loginStudentBtn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-                        Masuk sebagai Siswa
+// Inisialisasi Firebase
+let app;
+let auth;
+let db;
+try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    setLogLevel('debug'); // Aktifkan log debug Firebase
+} catch (e) {
+    console.error("Error initializing Firebase:", e);
+}
+
+// --- Daftar Kelas (Bisa disesuaikan) ---
+// Hasilkan daftar kelas baru
+const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+const KELAS_X = letters.map(l => `X-${l}`);
+const KELAS_XI = letters.map(l => `XI-${l}`);
+const KELAS_XII = letters.map(l => `XII-${l}`);
+
+const KELAS_LIST = [...KELAS_X, ...KELAS_XI, ...KELAS_XII];
+
+// --- Kategori Laporan ---
+const REPORT_CATEGORIES = [
+    'Perundungan (Bullying)',
+    'Fasilitas Rusak',
+    'Pelecehan',
+    'Kebersihan & Lingkungan',
+    'Kekerasan',
+    'Lainnya'
+];
+
+const STATUS_OPTIONS = {
+    'Terkirim': 'bg-gray-200 text-gray-800',
+    'Diproses': 'bg-yellow-200 text-yellow-800',
+    'Selesai': 'bg-green-200 text-green-800',
+    'Ditolak': 'bg-red-200 text-red-800'
+};
+
+// --- Komponen UI Bantuan ---
+
+// Komponen Modal
+const Modal = ({ show, onClose, title, children }) => {
+    if (!show) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold">{title}</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+                        <X size={24} />
                     </button>
-                    <button id="loginAdminBtn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out">
-                        Masuk sebagai Admin
-                    </button>
                 </div>
+                <div>{children}</div>
             </div>
         </div>
+    );
+};
 
-        <!-- Dasbor Siswa -->
-        <div id="studentDashboard" class="hidden">
-            <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Dasbor Siswa</h2>
-                    <p id="welcomeMessage" class="text-gray-600"></p>
+// Komponen Spinner Loading
+const LoadingSpinner = ({ message = "Memuat..." }) => (
+    <div className="flex flex-col items-center justify-center p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+        <p className="mt-4 text-lg text-gray-600">{message}</p>
+    </div>
+);
+
+// --- Halaman Login ---
+const LoginPage = ({ onLogin }) => {
+    const [page, setPage] = useState('main'); // 'main', 'student', 'admin'
+    const [name, setName] = useState('');
+    const [kelas, setKelas] = useState(KELAS_LIST[0]);
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+
+    const handleStudentLogin = () => {
+        if (!name || !kelas) {
+            setError('Nama dan Kelas harus diisi.');
+            return;
+        }
+        setError('');
+        onLogin({
+            name,
+            kelas,
+            role: 'student',
+            id: `student-${name.toLowerCase().replace(/\s/g, '-')}`
+        });
+    };
+
+    const handleAdminLogin = () => {
+        if (password === 'admin123') {
+            setError('');
+            onLogin({
+                name: 'Admin',
+                kelas: 'Staff',
+                role: 'admin',
+                id: 'admin-user'
+            });
+        } else {
+            setError('Password Admin salah.');
+        }
+    };
+
+    const handleAnonLogin = () => {
+        setError('');
+        onLogin({
+            name: 'Anonim',
+            kelas: 'N/A',
+            role: 'anonymous',
+            id: 'anonymous-user'
+        });
+    };
+
+    if (page === 'student') {
+        return (
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl">
+                <h2 className="text-3xl font-bold text-center text-gray-900">Login Siswa</h2>
+                {error && <p className="text-red-500 text-center">{error}</p>}
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                        <input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Contoh: Budi Setiawan"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="kelas" className="block text-sm font-medium text-gray-700">Kelas</label>
+                        <select
+                            id="kelas"
+                            value={kelas}
+                            onChange={(e) => setKelas(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            {KELAS_LIST.map(k => <option key={k} value={k}>{k}</option>)}
+                        </select>
+                    </div>
+                    <button
+                        onClick={handleStudentLogin}
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                        Masuk
+                    </button>
                 </div>
-                <button id="logoutBtnStudent" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition">Keluar</button>
+                <button onClick={() => setPage('main')} className="text-sm text-indigo-600 hover:underline mt-4">&larr; Kembali</button>
             </div>
+        );
+    }
+
+    if (page === 'admin') {
+        return (
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl">
+                <h2 className="text-3xl font-bold text-center text-gray-900">Login Admin</h2>
+                {error && <p className="text-red-500 text-center">{error}</p>}
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="••••••••"
+                        />
+                    </div>
+                    <button
+                        onClick={handleAdminLogin}
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                        Masuk
+                    </button>
+                </div>
+                <button onClick={() => setPage('main')} className="text-sm text-indigo-600 hover:underline mt-4">&larr; Kembali</button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl">
+            <h2 className="text-3xl font-bold text-center text-gray-900">Selamat Datang!</h2>
+            <p className="text-center text-gray-600">Aplikasi Pengaduan Sosial Sekolah</p>
+            <div className="space-y-4">
+                <button
+                    onClick={() => setPage('student')}
+                    className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                    <Users className="mr-3" size={24} /> Login sebagai Siswa
+                </button>
+                <button
+                    onClick={() => setPage('admin')}
+                    className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-gray-700 hover:bg-gray-800"
+                >
+                    <Shield className="mr-3" size={24} /> Login sebagai Admin
+                </button>
+                <button
+                    onClick={handleAnonLogin}
+                    className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-lg font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                    <UserCheck className="mr-3" size={24} /> Lapor secara Anonim
+                </button>
+            </div>
+        </div>
+    );
+};
+
+// --- Halaman Buat Laporan ---
+const ReportForm = ({ user, userId, setPage }) => {
+    const [category, setCategory] = useState(REPORT_CATEGORIES[0]);
+    const [description, setDescription] = useState('');
+    const [file, setFile] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [modalInfo, setModalInfo] = useState({ show: false, title: '', message: '' });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!description) {
+            setModalInfo({ show: true, title: 'Error', message: 'Deskripsi tidak boleh kosong.' });
+            return;
+        }
+        setIsSubmitting(true);
+
+        try {
+            const collectionPath = `artifacts/${appId}/public/data/reports`;
+            const reportData = {
+                userId: user.role === 'anonymous' ? `anon-${userId}` : userId,
+                name: user.name,
+                kelas: user.kelas,
+                role: user.role,
+                category,
+                description,
+                fileName: file ? file.name : 'Tidak ada file',
+                status: 'Terkirim',
+                createdAt: serverTimestamp(),
+                archived: false
+            };
             
-            <div class="bg-white p-6 rounded-xl shadow-md">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-semibold">Laporan Saya</h3>
-                    <button id="newReportBtn" class="bg-green-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-600 transition">Buat Laporan Baru</button>
-                </div>
-                <div id="studentReports" class="space-y-4">
-                    <!-- Laporan siswa akan ditampilkan di sini -->
-                </div>
-            </div>
-        </div>
+            await addDoc(collection(db, collectionPath), reportData);
+            
+            setModalInfo({ 
+                show: true, 
+                title: 'Laporan Terkirim', 
+                message: 'Laporan Anda telah berhasil dikirim. (Catatan: Upload file hanya simulasi, nama file dicatat.)'
+            });
+            setDescription('');
+            setFile(null);
+            setPage('dashboard');
 
-        <!-- Dasbor Admin -->
-        <div id="adminDashboard" class="hidden">
-             <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Panel Admin</h2>
-                    <p class="text-gray-600">Tinjau dan kelola semua laporan yang masuk.</p>
-                </div>
-                <button id="logoutBtnAdmin" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition">Keluar</button>
-            </div>
-             <div class="bg-white p-6 rounded-xl shadow-md">
-                 <h3 class="text-xl font-semibold mb-4">Semua Laporan Masuk</h3>
-                 <div id="adminReports" class="space-y-4">
-                     <!-- Semua laporan akan ditampilkan di sini -->
-                 </div>
-            </div>
-        </div>
-        
-        <!-- Modal Form Laporan Baru -->
-        <div id="reportModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden z-50 p-4">
-            <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg transform transition-all" id="reportModalContent">
-                <h2 class="text-2xl font-bold mb-6">Buat Laporan Pengaduan</h2>
-                <form id="reportForm" class="space-y-4">
+        } catch (error) {
+            console.error("Error adding document: ", error);
+            setModalInfo({ show: true, title: 'Error', message: `Gagal mengirim laporan: ${error.message}` });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <>
+            <Modal show={modalInfo.show} onClose={() => setModalInfo({ show: false })} title={modalInfo.title}>
+                <p>{modalInfo.message}</p>
+            </Modal>
+            <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+                <h2 className="text-2xl font-semibold mb-6">Buat Laporan Baru</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700">Kategori</label>
-                        <select id="category" name="category" required class="form-select mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="Fasilitas">Fasilitas & Infrastruktur</option>
-                            <option value="Kebersihan">Kebersihan & Lingkungan</option>
-                            <option value="Pembelajaran">Proses Belajar Mengajar</option>
-                            <option value="Perundungan">Perundungan (Bullying)</option>
-                            <option value="Keamanan">Keamanan</option>
-                            <option value="Lainnya">Lainnya</option>
+                        <label className="block text-sm font-medium text-gray-700">Pelapor</label>
+                        <p className="mt-1 p-2 bg-gray-100 rounded-md text-gray-600">{user.name} ({user.kelas})</p>
+                    </div>
+                    <div>
+                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">Jenis Laporan</label>
+                        <select
+                            id="category"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            {REPORT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700">Deskripsi Laporan</label>
-                        <textarea id="description" name="description" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Jelaskan laporan Anda secara detail..."></textarea>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700">Deskripsi Masalah</label>
+                        <textarea
+                            id="description"
+                            rows="6"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Jelaskan masalah yang terjadi secara rinci..."
+                        />
                     </div>
                     <div>
-                        <label for="media" class="block text-sm font-medium text-gray-700">Lampirkan Foto/Video (Opsional)</label>
-                        <input type="file" id="media" name="media" accept="image/*,video/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                        <img id="imagePreview" src="" alt="Pratinjau Gambar" class="hidden mt-4 rounded-md max-h-40 w-auto"/>
+                        <label htmlFor="file" className="block text-sm font-medium text-gray-700">Bukti Foto/Video</label>
+                        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div className="space-y-1 text-center">
+                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                                <div className="flex text-sm text-gray-600">
+                                    <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                                        <span>Upload file</span>
+                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" 
+                                            accept="image/*,video/*"
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                        />
+                                    </label>
+                                    <p className="pl-1">atau tarik dan lepas</p>
+                                </div>
+                                <p className="text-xs text-gray-500">PNG, JPG, GIF, MP4 (Simulasi)</p>
+                            </div>
+                        </div>
+                        {file && <p className="text-sm text-gray-500 mt-2">File dipilih: {file.name}</p>}
                     </div>
-                    <div class="flex justify-end gap-4 pt-4">
-                        <button type="button" id="cancelReportBtn" class="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition">Batal</button>
-                        <button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center">
-                            <span id="submitText">Kirim Laporan</span>
-                            <div id="submitLoader" class="loader w-4 h-4 rounded-full border-2 border-gray-200 ml-2 hidden"></div>
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
+                    >
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : 'Kirim Laporan'}
+                    </button>
                 </form>
             </div>
-        </div>
+        </>
+    );
+};
 
-    </div> <!-- End #app -->
+// --- Halaman Dashboard (Siswa & Anonim) ---
+const StudentDashboard = ({ user, userId }) => {
+    const [myReports, setMyReports] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modalData, setModalData] = useState({ show: false, report: null });
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // State aplikasi
-            let currentUser = null;
+    useEffect(() => {
+        if (!db || !userId) return;
+        setLoading(true);
 
-            // Elemen-elemen DOM
-            const loginPage = document.getElementById('loginPage');
-            const studentDashboard = document.getElementById('studentDashboard');
-            const adminDashboard = document.getElementById('adminDashboard');
-            const reportModal = document.getElementById('reportModal');
-            const studentNameInput = document.getElementById('studentName');
-            const studentClassSelect = document.getElementById('studentClass');
-            const imagePreview = document.getElementById('imagePreview');
-            const mediaInput = document.getElementById('media');
-            const adminPasswordContainer = document.getElementById('adminPasswordContainer');
-            const adminPasswordInput = document.getElementById('adminPassword');
-            const passwordError = document.getElementById('passwordError');
+        const currentUserId = user.role === 'anonymous' ? `anon-${userId}` : userId;
+        const collectionPath = `artifacts/${appId}/public/data/reports`;
+        const q = query(collection(db, collectionPath), where('userId', '==', currentUserId));
 
-            // --- FUNGSI DATA LOCALSTORAGE ---
-            const getAllReports = () => {
-                const reports = localStorage.getItem('studentReports');
-                return reports ? JSON.parse(reports) : [];
-            };
-
-            const saveAllReports = (reports) => {
-                localStorage.setItem('studentReports', JSON.stringify(reports));
-            };
-
-            // --- FUNGSI UTILITAS ---
-            const showPage = (page) => {
-                loginPage.classList.add('hidden');
-                studentDashboard.classList.add('hidden');
-                adminDashboard.classList.add('hidden');
-                page.classList.remove('hidden');
-            };
-            
-            const getStatusBadge = (status) => {
-                switch (status) {
-                    case 'Terkirim': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">${status}</span>`;
-                    case 'Diproses': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800">${status}</span>`;
-                    case 'Selesai': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">${status}</span>`;
-                    case 'Ditolak': return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">${status}</span>`;
-                    default: return `<span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800">${status}</span>`;
-                }
-            };
-
-            const generateClassOptions = () => {
-                const grades = ['X', 'XI', 'XII'];
-                const majors = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-                let options = '<option value="">-- Pilih Kelas --</option>';
-                grades.forEach(grade => {
-                    majors.forEach(major => {
-                        const className = `${grade}${major}`;
-                        options += `<option value="${className}">${className}</option>`;
-                    });
-                });
-                studentClassSelect.innerHTML = options;
-            };
-
-            const generateReportCode = () => {
-                const date = new Date();
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
-                return `LPR-${year}${month}${day}-${randomChars}`;
-            };
-            
-            // --- LOGIKA APLIKASI ---
-            const handleLogin = (role) => {
-                const name = studentNameInput.value.trim();
-                const studentClass = studentClassSelect.value;
-                passwordError.classList.add('hidden');
-
-                if (role === 'admin') {
-                    adminPasswordContainer.classList.remove('hidden');
-                    const password = adminPasswordInput.value;
-                    if (password !== 'smanida1223') { // Ganti password jika perlu
-                        if (password) passwordError.classList.remove('hidden');
-                        return;
-                    }
-                } else {
-                    adminPasswordContainer.classList.add('hidden');
-                }
-                
-                if (!name) { alert('Nama tidak boleh kosong.'); return; }
-                if (role === 'student' && !studentClass) { alert('Silakan pilih kelas Anda.'); return; }
-
-                currentUser = { 
-                    name, 
-                    class: studentClass, 
-                    role,
-                    uid: crypto.randomUUID() // ID unik untuk setiap sesi login siswa
-                };
-                
-                sessionStorage.setItem('user', JSON.stringify(currentUser));
-
-                if (role === 'student') {
-                    document.getElementById('welcomeMessage').innerText = `Selamat datang, ${name} dari kelas ${studentClass}`;
-                    showPage(studentDashboard);
-                    renderStudentReports();
-                } else {
-                    showPage(adminDashboard);
-                    renderAdminReports();
-                }
-            };
-
-            const handleLogout = () => {
-                currentUser = null;
-                sessionStorage.removeItem('user');
-                studentNameInput.value = '';
-                studentClassSelect.value = '';
-                adminPasswordInput.value = '';
-                adminPasswordContainer.classList.add('hidden');
-                passwordError.classList.add('hidden');
-                showPage(loginPage);
-            };
-            
-            const renderStudentReports = () => {
-                const container = document.getElementById('studentReports');
-                const allReports = getAllReports();
-                const myReports = allReports.filter(report => report.studentUid === currentUser.uid);
-                
-                myReports.sort((a, b) => b.createdAt - a.createdAt);
-
-                if (myReports.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada laporan yang dibuat.</p>`;
-                    return;
-                }
-                container.innerHTML = myReports.map(report => `
-                    <div class="border border-gray-200 p-4 rounded-lg hover:bg-gray-50">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-semibold text-gray-700">${report.category}</p>
-                                <p class="text-xs font-mono text-gray-500 mt-1">${report.reportCode || 'N/A'}</p>
-                            </div>
-                            ${getStatusBadge(report.status)}
-                        </div>
-                        <p class="mt-2 text-gray-600">${report.description}</p>
-                        <p class="text-right text-sm text-gray-500 mt-2">${new Date(report.createdAt).toLocaleString('id-ID')}</p>
-                    </div>
-                `).join('');
-            };
-            
-            const renderAdminReports = () => {
-                const container = document.getElementById('adminReports');
-                const allReports = getAllReports();
-                allReports.sort((a, b) => b.createdAt - a.createdAt);
-
-                if (allReports.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500 text-center py-4">Tidak ada laporan yang masuk.</p>`;
-                    return;
-                }
-                container.innerHTML = allReports.map(report => `
-                    <div class="border border-gray-200 p-4 rounded-lg">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                            <div>
-                                <p class="font-bold">${report.studentName}</p>
-                                <p class="text-sm text-gray-500">Kelas: ${report.studentClass}</p>
-                                <p class="text-xs font-mono text-gray-500 mt-1">${report.reportCode || 'N/A'}</p>
-                                <p class="text-sm text-gray-500 mt-1">${new Date(report.createdAt).toLocaleString('id-ID')}</p>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-gray-700">${report.category}</p>
-                                <p class="mt-1 text-gray-600">${report.description}</p>
-                            </div>
-                            <div class="flex flex-col items-start md:items-end gap-2">
-                                ${getStatusBadge(report.status)}
-                                <select data-id="${report.id}" class="status-changer form-select text-sm mt-2 block w-full md:w-auto px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="Terkirim" ${report.status === 'Terkirim' ? 'selected' : ''}>Terkirim</option>
-                                    <option value="Diproses" ${report.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
-                                    <option value="Selesai" ${report.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
-                                    <option value="Ditolak" ${report.status === 'Ditolak' ? 'selected' : ''}>Ditolak</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-                
-                document.querySelectorAll('.status-changer').forEach(select => {
-                    select.addEventListener('change', (e) => {
-                        const reportId = e.target.dataset.id;
-                        const newStatus = e.target.value;
-                        const reports = getAllReports();
-                        const reportIndex = reports.findIndex(r => r.id == reportId);
-                        if (reportIndex > -1) {
-                            reports[reportIndex].status = newStatus;
-                            saveAllReports(reports);
-                            renderAdminReports(); // Re-render untuk menampilkan badge yang diperbarui
-                        }
-                    });
-                });
-            };
-            
-            const handleFormSubmit = (e) => {
-                e.preventDefault();
-                document.getElementById('submitText').classList.add('hidden');
-                document.getElementById('submitLoader').classList.remove('hidden');
-
-                const newReport = {
-                    id: Date.now(),
-                    studentName: currentUser.name,
-                    studentClass: currentUser.class,
-                    studentUid: currentUser.uid,
-                    category: e.target.category.value,
-                    description: e.target.description.value,
-                    status: "Terkirim",
-                    createdAt: Date.now(),
-                    reportCode: generateReportCode()
-                };
-                
-                const reports = getAllReports();
-                reports.push(newReport);
-                saveAllReports(reports);
-
-                setTimeout(() => { // Simulasi loading
-                    reportModal.classList.add('hidden');
-                    e.target.reset();
-                    imagePreview.classList.add('hidden');
-                    document.getElementById('submitText').classList.remove('hidden');
-                    document.getElementById('submitLoader').classList.add('hidden');
-                    renderStudentReports();
-                }, 500);
-            };
-
-            // --- EVENT LISTENERS ---
-            document.getElementById('loginStudentBtn').addEventListener('click', () => handleLogin('student'));
-            document.getElementById('loginAdminBtn').addEventListener('click', () => handleLogin('admin'));
-            document.getElementById('logoutBtnStudent').addEventListener('click', handleLogout);
-            document.getElementById('logoutBtnAdmin').addEventListener('click', handleLogout);
-
-            document.getElementById('newReportBtn').addEventListener('click', () => reportModal.classList.remove('hidden'));
-            document.getElementById('cancelReportBtn').addEventListener('click', () => {
-                reportModal.classList.add('hidden');
-                document.getElementById('reportForm').reset();
-                imagePreview.classList.add('hidden');
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const reports = [];
+            querySnapshot.forEach((doc) => {
+                reports.push({ id: doc.id, ...doc.data() });
             });
-            document.getElementById('reportForm').addEventListener('submit', handleFormSubmit);
-
-            mediaInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        imagePreview.src = event.target.result;
-                        imagePreview.classList.remove('hidden');
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    imagePreview.classList.add('hidden');
-                }
-            });
-
-            // --- INISIALISASI APLIKASI ---
-            const checkSession = () => {
-                const savedUser = sessionStorage.getItem('user');
-                if (savedUser) {
-                    currentUser = JSON.parse(savedUser);
-                    if (currentUser.role === 'student') {
-                        document.getElementById('welcomeMessage').innerText = `Selamat datang kembali, ${currentUser.name} dari kelas ${currentUser.class}`;
-                        showPage(studentDashboard);
-                        renderStudentReports();
-                    } else {
-                        showPage(adminDashboard);
-                        renderAdminReports();
-                    }
-                } else {
-                    showPage(loginPage);
-                }
-            };
-            
-            generateClassOptions();
-            checkSession();
+            // Sortir laporan, terbaru di atas
+            reports.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate());
+            setMyReports(reports);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching reports: ", error);
+            setLoading(false);
         });
-    </script>
-</body>
-</html>
 
+        return () => unsubscribe();
+    }, [db, userId, user.role]);
+
+    const viewDetails = (report) => {
+        setModalData({ show: true, report });
+    };
+
+    return (
+        <>
+            <Modal show={modalData.show} onClose={() => setModalData({ show: false, report: null })} title="Detail Laporan">
+                {modalData.report && (
+                    <div className="space-y-3">
+                        <p><strong>Kategori:</strong> {modalData.report.category}</p>
+                        <p><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-sm ${STATUS_OPTIONS[modalData.report.status]}`}>{modalData.report.status}</span></p>
+                        <p><strong>Deskripsi:</strong></p>
+                        <p className="p-2 bg-gray-100 rounded-md whitespace-pre-wrap">{modalData.report.description}</p>
+                        <p><strong>File:</strong> {modalData.report.fileName}</p>
+                        <p><strong>Dilaporkan pada:</strong> {modalData.report.createdAt?.toDate().toLocaleString('id-ID')}</p>
+                    </div>
+                )}
+            </Modal>
+
+            <div className="w-full max-w-4xl mx-auto p-6">
+                <h2 className="text-2xl font-semibold mb-6">Laporan Saya</h2>
+                {loading && <LoadingSpinner />}
+                {!loading && myReports.length === 0 && (
+                    <div className="text-center p-8 bg-white rounded-lg shadow-md">
+                        <Inbox className="mx-auto h-16 w-16 text-gray-400" />
+                        <p className="mt-4 text-lg text-gray-600">Anda belum membuat laporan.</p>
+                    </div>
+                )}
+                {!loading && myReports.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                        <ul className="divide-y divide-gray-200">
+                            {myReports.map(report => (
+                                <li key={report.id} className="p-4 hover:bg-gray-50 cursor-pointer" onClick={() => viewDetails(report)}>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-lg font-medium text-indigo-600">{report.category}</p>
+                                            <p className="text-sm text-gray-500 truncate max-w-md">{report.description}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_OPTIONS[report.status]}`}>
+                                                {report.status}
+                                            </span>
+                                            <p className="text-xs text-gray-400 mt-2">{report.createdAt?.toDate().toLocaleDateString('id-ID')}</p>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+};
+
+// --- Halaman Dashboard (Admin) ---
+const AdminDashboard = () => {
+    const [allReports, setAllReports] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modalData, setModalData] = useState({ show: false, report: null });
+    const [newStatus, setNewStatus] = useState('');
+
+    useEffect(() => {
+        if (!db) return;
+        setLoading(true);
+
+        const collectionPath = `artifacts/${appId}/public/data/reports`;
+        const q = query(collection(db, collectionPath));
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const reports = [];
+            querySnapshot.forEach((doc) => {
+                reports.push({ id: doc.id, ...doc.data() });
+            });
+            reports.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate());
+            setAllReports(reports);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching all reports: ", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [db]);
+
+    const viewDetails = (report) => {
+        setNewStatus(report.status);
+        setModalData({ show: true, report });
+    };
+
+    const handleUpdateStatus = async () => {
+        if (!db || !modalData.report || !newStatus) return;
+
+        try {
+            const docPath = `artifacts/${appId}/public/data/reports/${modalData.report.id}`;
+            await updateDoc(doc(db, docPath), { status: newStatus });
+            setModalData({ show: false, report: null });
+        } catch (error) {
+            console.error("Error updating status: ", error);
+        }
+    };
+
+    return (
+        <>
+            <Modal show={modalData.show} onClose={() => setModalData({ show: false, report: null })} title="Detail Laporan">
+                {modalData.report && (
+                    <div className="space-y-3">
+                        <p><strong>Pelapor:</strong> {modalData.report.name} ({modalData.report.kelas})</p>
+                        <p><strong>Kategori:</strong> {modalData.report.category}</p>
+                        <p><strong>Status Saat Ini:</strong> <span className={`px-2 py-0.5 rounded-full text-sm ${STATUS_OPTIONS[modalData.report.status]}`}>{modalData.report.status}</span></p>
+                        <p><strong>Deskripsi:</strong></p>
+                        <p className="p-2 bg-gray-100 rounded-md whitespace-pre-wrap">{modalData.report.description}</p>
+                        <p><strong>File:</strong> {modalData.report.fileName}</p>
+                        <p><strong>Dilaporkan pada:</strong> {modalData.report.createdAt?.toDate().toLocaleString('id-ID')}</p>
+                        
+                        <hr className="my-4"/>
+                        <h4 className="font-semibold">Update Status Laporan</h4>
+                        <select 
+                            value={newStatus} 
+                            onChange={(e) => setNewStatus(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            {Object.keys(STATUS_OPTIONS).map(status => (
+                                <option key={status} value={status}>{status}</option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={handleUpdateStatus}
+                            className="w-full mt-2 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            Update Status
+                        </button>
+                    </div>
+                )}
+            </Modal>
+
+            <div className="w-full max-w-6xl mx-auto p-6">
+                <h2 className="text-2xl font-semibold mb-6">Semua Laporan Masuk</h2>
+                {loading && <LoadingSpinner />}
+                {!loading && allReports.length === 0 && (
+                    <div className="text-center p-8 bg-white rounded-lg shadow-md">
+                        <Inbox className="mx-auto h-16 w-16 text-gray-400" />
+                        <p className="mt-4 text-lg text-gray-600">Belum ada laporan yang masuk.</p>
+                    </div>
+                )}
+                {!loading && allReports.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                        <ul className="divide-y divide-gray-200">
+                            {allReports.map(report => (
+                                <li key={report.id} className="p-4 hover:bg-gray-50 cursor-pointer" onClick={() => viewDetails(report)}>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-lg font-medium text-indigo-600">{report.category}</p>
+                                            <p className="text-sm text-gray-700">Oleh: {report.name} ({report.kelas})</p>
+                                            <p className="text-sm text-gray-500 truncate max-w-lg">{report.description}</p>
+                                        </div>
+                                        <div className="text-right flex-shrink-0">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_OPTIONS[report.status]}`}>
+                                                {report.status}
+                                            </span>
+                                            <p className="text-xs text-gray-400 mt-2">{report.createdAt?.toDate().toLocaleDateString('id-ID')}</p>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+};
+
+// --- Halaman Chat ---
+
+// KOMPONEN ChatWindow (DIPINDAHKAN KE LUAR DARI ChatPage)
+// Ini akan mencegah re-render yang tidak perlu dan memperbaiki input lag
+const ChatWindow = ({
+    loading,
+    messages,
+    user,
+    messagesEndRef,
+    handleSendMessage,
+    newMessage,
+    setNewMessage,
+    selectedUserId
+}) => (
+    <div className="flex flex-col h-full bg-white shadow-md rounded-lg">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {loading && <LoadingSpinner message="Memuat pesan..." />}
+            {!loading && messages.length === 0 && <p className="text-center text-gray-500">Mulai percakapan...</p>}
+            {messages.map(msg => {
+                const isMyMessage = msg.sender === user.role;
+                let isRead = false;
+                
+                if (isMyMessage) {
+                    if (user.role === 'admin') {
+                        isRead = msg.readByStudent; // Dibaca oleh siswa
+                    } else {
+                        isRead = msg.readByAdmin; // Dibaca oleh admin
+                    }
+                }
+
+                return (
+                    <div key={msg.id} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs lg:max-w-md p-3 rounded-lg ${isMyMessage ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
+                            {user.role === 'admin' && msg.sender !== 'admin' && <p className="text-xs font-semibold opacity-75">{msg.senderName}</p>}
+                            {user.role !== 'admin' && msg.sender === 'admin' && <p className="text-xs font-semibold opacity-75">Admin</p>}
+                            <p>{msg.text}</p>
+                            <div className="flex justify-end items-center text-xs opacity-60 mt-1">
+                                {msg.timestamp?.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                {isMyMessage && (
+                                    <span className="ml-2">
+                                        {isRead ? <CheckCheck size={16} /> : <Check size={16} />}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+            <div ref={messagesEndRef} />
+        </div>
+        <form onSubmit={handleSendMessage} className="p-4 border-t flex">
+            <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Ketik pesan..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={user.role === 'admin' && !selectedUserId}
+            />
+            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700"
+                disabled={user.role === 'admin' && !selectedUserId}
+            >
+                <Send size={20} />
+            </button>
+        </form>
+    </div>
+);
+
+
+const ChatPage = ({ user, userId }) => {
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [loading, setLoading] = useState(true);
+    
+    // Untuk Admin
+    const [chatUsers, setChatUsers] = useState([]);
+    const [selectedUserId, setSelectedUserId] = useState(null);
+    
+    const messagesEndRef = React.useRef(null);
+
+    const chatCollectionPath = `artifacts/${appId}/public/data/chatMessages`;
+
+    // Ambil semua pengguna yang pernah chat (untuk Admin)
+    useEffect(() => {
+        if (user.role !== 'admin' || !db) return;
+
+        const q = query(collection(db, chatCollectionPath));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const userIds = new Set();
+            snapshot.forEach(doc => userIds.add(doc.data().userId));
+            // Ubah Set menjadi array objek untuk state
+            const users = Array.from(userIds).map(uid => ({ 
+                id: uid, 
+                // Coba ambil nama dari laporan terbaru, jika tidak, gunakan default
+                name: uid.startsWith('anon-') ? 'Anonim' : 'Siswa' // TODO: Logika ini bisa ditingkatkan
+            }));
+            setChatUsers(users);
+        });
+
+        return () => unsubscribe();
+    }, [db, user.role]);
+
+    
+    // Fungsi untuk update status dibaca (dibungkus dengan useCallback)
+    const updateReadStatus = useCallback(async (msgIds, readingUserRole) => {
+        try {
+            const updateField = readingUserRole === 'admin' ? { readByAdmin: true } : { readByStudent: true };
+            
+            // Lakukan update secara batch (meskipun di sini satu per satu)
+            for (const msgId of msgIds) {
+                const docPath = `artifacts/${appId}/public/data/chatMessages/${msgId}`;
+                await updateDoc(doc(db, docPath), updateField);
+            }
+        } catch (error) {
+            console.error("Error updating read status: ", error);
+        }
+    }, [db, appId]); // Tambahkan dependensi
+
+
+    // Ambil pesan untuk chat yang dipilih
+    useEffect(() => {
+        if (!db) return;
+        setLoading(true);
+
+        let targetUserId;
+        if (user.role === 'admin') {
+            if (!selectedUserId) {
+                setLoading(false);
+                setMessages([]);
+                return;
+            }
+            targetUserId = selectedUserId;
+        } else {
+            targetUserId = user.role === 'anonymous' ? `anon-${userId}` : userId;
+        }
+
+        const q = query(collection(db, chatCollectionPath), where('userId', '==', targetUserId));
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            let msgs = [];
+            let unreadMsgIdsToUpdate = [];
+            const currentUserRole = user.role; // 'admin' or 'student'/'anonymous'
+
+            snapshot.forEach(doc => {
+                const msg = { id: doc.id, ...doc.data() };
+                msgs.push(msg);
+
+                // Tandai sebagai sudah dibaca
+                if (currentUserRole === 'admin' && msg.sender !== 'admin' && !msg.readByAdmin) {
+                    unreadMsgIdsToUpdate.push(msg.id);
+                } else if (currentUserRole !== 'admin' && msg.sender === 'admin' && !msg.readByStudent) {
+                    unreadMsgIdsToUpdate.push(msg.id);
+                }
+            });
+
+            msgs.sort((a, b) => a.timestamp?.toDate() - b.timestamp?.toDate());
+            setMessages(msgs);
+            setLoading(false);
+
+            // Update status 'dibaca' di firestore
+            if (unreadMsgIdsToUpdate.length > 0) {
+                updateReadStatus(unreadMsgIdsToUpdate, currentUserRole);
+            }
+        }, (error) => {
+            console.error("Error fetching messages: ", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+
+    }, [db, userId, user.role, selectedUserId, updateReadStatus]); // Tambahkan updateReadStatus ke dependensi
+    
+    // Fungsi untuk update status dibaca (dihapus dari sini, sudah di atas)
+    
+    // Scroll ke bawah
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
+    const handleSendMessage = useCallback(async (e) => {
+        e.preventDefault();
+        if (newMessage.trim() === '' || !db) return;
+
+        let targetUserId;
+        if (user.role === 'admin') {
+            if (!selectedUserId) return;
+            targetUserId = selectedUserId;
+        } else {
+            targetUserId = user.role === 'anonymous' ? `anon-${userId}` : userId;
+        }
+
+        try {
+            await addDoc(collection(db, chatCollectionPath), {
+                text: newMessage,
+                userId: targetUserId,
+                sender: user.role,
+                senderName: user.name,
+                timestamp: serverTimestamp(),
+                readByAdmin: user.role === 'admin', // Otomatis dibaca oleh pengirim
+                readByStudent: user.role !== 'admin' // Otomatis dibaca oleh pengirim
+            });
+            setNewMessage('');
+        } catch (error) {
+            // Blok catch yang rusak telah diperbaiki
+            console.error("Error sending message: ", error);
+        }
+    }, [newMessage, db, user, selectedUserId, userId, chatCollectionPath, setNewMessage]); // Tambahkan dependensi ke useCallback
+
+    // Definisi const ChatWindow (Dihapus dari sini, sudah dipindah ke atas)
+
+    if (user.role === 'admin') {
+        return (
+            <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto">
+                <div className="w-1/3 border-r overflow-y-auto bg-white p-4">
+                    <h3 className="text-xl font-semibold mb-4">Daftar Chat</h3>
+                    <ul className="space-y-2">
+                        {chatUsers.map(chatUser => (
+                            <li key={chatUser.id}>
+                                <button 
+                                    onClick={() => setSelectedUserId(chatUser.id)}
+                                    className={`w-full text-left p-3 rounded-lg ${selectedUserId === chatUser.id ? 'bg-indigo-100' : 'hover:bg-gray-100'}`}
+                                >
+                                    <p className="font-medium">{chatUser.name} ({chatUser.id.substring(0, 8)}...)</p>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="w-2/3">
+                    {selectedUserId ? (
+                        <ChatWindow
+                            loading={loading}
+                            messages={messages}
+                            user={user}
+                            messagesEndRef={messagesEndRef}
+                            handleSendMessage={handleSendMessage}
+                            newMessage={newMessage}
+                            setNewMessage={setNewMessage}
+                            selectedUserId={selectedUserId}
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full bg-white text-gray-500">Pilih chat untuk memulai</div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-2xl mx-auto h-[calc(100vh-120px)]">
+            <ChatWindow
+                loading={loading}
+                messages={messages}
+                user={user}
+                messagesEndRef={messagesEndRef}
+                handleSendMessage={handleSendMessage}
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                selectedUserId={selectedUserId}
+            />
+        </div>
+    );
+};
+
+// --- Halaman Analitik ---
+const AnalyticsPage = () => {
+    const [reportData, setReportData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db) return;
+        setLoading(true);
+
+        const fetchReports = async () => {
+            try {
+                const collectionPath = `artifacts/${appId}/public/data/reports`;
+                const querySnapshot = await getDocs(collection(db, collectionPath));
+                const reports = [];
+                querySnapshot.forEach((doc) => {
+                    reports.push(doc.data());
+                });
+                setReportData(reports);
+            } catch (error) {
+                console.error("Error fetching reports for analytics: ", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReports();
+    }, [db]);
+
+    const monthlyData = useMemo(() => {
+        const months = Array(12).fill(0);
+        reportData.forEach(report => {
+            if (report.createdAt) {
+                const month = report.createdAt.toDate().getMonth(); // 0-11
+                months[month]++;
+            }
+        });
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        return monthNames.map((name, index) => ({ name, Laporan: months[index] }));
+    }, [reportData]);
+
+    const categoryData = useMemo(() => {
+        const categories = {};
+        REPORT_CATEGORIES.forEach(cat => categories[cat] = 0);
+        
+        reportData.forEach(report => {
+            if (categories.hasOwnProperty(report.category)) {
+                categories[report.category]++;
+            }
+        });
+        
+        return Object.entries(categories)
+            .map(([name, value]) => ({ name, value }))
+            .filter(item => item.value > 0); // Hanya tampilkan kategori yang ada laporannya
+    }, [reportData]);
+
+    const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82Ca9D'];
+
+    if (loading) return <LoadingSpinner message="Memuat data analitik..." />;
+
+    return (
+        <div className="w-full max-w-6xl mx-auto p-6 space-y-8">
+            <h2 className="text-2xl font-semibold mb-6">Analitik Laporan</h2>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold mb-4">Jumlah Laporan per Bulan</h3>
+                {reportData.length === 0 ? <p>Belum ada data</p> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={monthlyData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="Laporan" fill="#8884d8" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                )}
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold mb-4">Kategori Laporan Terbanyak</h3>
+                {categoryData.length === 0 ? <p>Belum ada data</p> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                            <Pie
+                                data={categoryData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={120}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            >
+                                {categoryData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+// --- Komponen Navbar ---
+const Navbar = ({ user, setPage, onLogout, hasUnreadChat }) => {
+    const isAdmin = user && user.role === 'admin';
+    const isStudent = user && (user.role === 'student' || user.role === 'anonymous');
+
+    const NavButton = ({ page, icon: Icon, label, hasNotification = false }) => (
+        <button
+            onClick={() => setPage(page)}
+            className="relative flex flex-col items-center justify-center w-full p-2 text-gray-600 hover:bg-indigo-100 hover:text-indigo-600 rounded-lg"
+        >
+            <Icon size={24} />
+            <span className="text-xs mt-1">{label}</span>
+            {hasNotification && (
+                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+            )}
+        </button>
+    );
+
+    return (
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-40">
+            <div className="text-xl font-bold text-indigo-600">LaporAman</div>
+            <div className="flex items-center space-x-4">
+                {isStudent && <NavButton page="dashboard" icon={FileText} label="Laporan Saya" />}
+                {isStudent && <NavButton page="form" icon={ArrowRight} label="Buat Laporan" />}
+                {isAdmin && <NavButton page="dashboard" icon={Inbox} label="Semua Laporan" />}
+                {isAdmin && <NavButton page="analytics" icon={BarChart2} label="Analitik" />}
+                
+                <NavButton page="chat" icon={MessageSquare} label="Chat" hasNotification={hasUnreadChat} />
+                
+                <div className="flex items-center space-x-2 pl-4 border-l">
+                    <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                        Halo, {user.name} {isAdmin ? '(Admin)' : `(${user.kelas})`}
+                    </span>
+                    <button
+                        onClick={onLogout}
+                        className="p-2 text-gray-600 hover:bg-red-100 hover:text-red-600 rounded-full"
+                        title="Logout"
+                    >
+                        <LogOut size={20} />
+                    </button>
+                </div>
+            </div>
+        </nav>
+    );
+};
+
+// --- Komponen Utama App ---
+export default function App() {
+    const [user, setUser] = useState(null);
+    const [page, setPage] = useState('dashboard');
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState(null);
+    const [hasUnreadChat, setHasUnreadChat] = useState(false); // State untuk notifikasi
+
+    // Efek untuk inisialisasi Firebase Auth
+    useEffect(() => {
+        if (!auth) return;
+
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Pengguna sudah login (dari sesi sebelumnya atau token)
+                setCurrentUserId(user.uid);
+                setIsAuthReady(true);
+            } else {
+                // Tidak ada pengguna, coba login dengan token atau anonim
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    // onAuthStateChanged akan dipanggil lagi setelah ini
+                } catch (error) {
+                    console.error("Auth error:", error);
+                    setIsAuthReady(true); // Tetap lanjutkan walau auth gagal
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Efek untuk listener notifikasi chat global
+    useEffect(() => {
+        if (!user || !db || !currentUserId) {
+            setHasUnreadChat(false);
+            return;
+        }
+
+        // Jika user di halaman chat, jangan tampilkan notif & biarkan ChatPage yg urus
+        if (page === 'chat') {
+            setHasUnreadChat(false);
+            return;
+        }
+
+        let q;
+        if (user.role === 'admin') {
+            // Admin: Cek pesan yang belum dibaca admin.
+            // Kita akan filter 'sender' di sisi klien (JS) untuk menghindari error indeks.
+            q = query(
+                collection(db, `artifacts/${appId}/public/data/chatMessages`), 
+                where('readByAdmin', '==', false) // Hanya satu filter
+            );
+        } else {
+            // Siswa/Anon: Cek pesan untuk user ini.
+            // Kita akan filter 'readByStudent' dan 'sender' di sisi klien (JS).
+            const targetUserId = user.role === 'anonymous' ? `anon-${currentUserId}` : currentUserId;
+            q = query(
+                collection(db, `artifacts/${appId}/public/data/chatMessages`), 
+                where('userId', '==', targetUserId) // Hanya satu filter
+            );
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (page === 'chat') {
+                setHasUnreadChat(false);
+                return; // Keluar lebih awal jika sudah di halaman chat
+            }
+
+            // --- Lakukan filter di sisi klien (JavaScript) ---
+            let hasUnread = false;
+            if (user.role === 'admin') {
+                // Admin: Cek apakah ada pesan (dari snapshot) yang pengirimnya BUKAN admin
+                hasUnread = snapshot.docs.some(doc => doc.data().sender !== 'admin');
+            } else {
+                // Siswa: Cek apakah ada pesan (dari snapshot) yang BELUM dibaca siswa DAN dikirim oleh admin
+                hasUnread = snapshot.docs.some(doc => 
+                    doc.data().readByStudent === false && 
+                    doc.data().sender === 'admin'
+                );
+            }
+            // --- Selesai filter ---
+
+            setHasUnreadChat(hasUnread);
+
+        }, (error) => {
+            console.error("Error checking unread messages: ", error);
+        });
+
+        return () => unsubscribe();
+
+    }, [db, user, currentUserId, page]); // Jalankan ulang jika user, db, atau page berubah
+
+    const handleLogin = (userInfo) => {
+        setUser(userInfo);
+        setPage('dashboard');
+    };
+
+    const handleLogout = () => {
+        setUser(null);
+        // Tidak perlu sign out dari Firebase, biarkan sesi anonim/token berjalan
+    };
+
+    // Render halaman berdasarkan state
+    const renderPage = () => {
+        if (!user) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                    <LoginPage onLogin={handleLogin} />
+                </div>
+            );
+        }
+
+        switch (page) {
+            case 'dashboard':
+                return user.role === 'admin' ? <AdminDashboard /> : <StudentDashboard user={user} userId={currentUserId} />;
+            case 'form':
+                return <ReportForm user={user} userId={currentUserId} setPage={setPage} />;
+            case 'chat':
+                return <ChatPage user={user} userId={currentUserId} />;
+            case 'analytics':
+                return user.role === 'admin' ? <AnalyticsPage /> : <div>Akses ditolak</div>;
+            default:
+                return <div>Halaman tidak ditemukan</div>;
+        }
+    };
+
+    // Tampilkan loading jika Firebase Auth belum siap
+    if (!isAuthReady || (user && !currentUserId)) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+                <LoadingSpinner message="Menyiapkan koneksi aman..." />
+            </div>
+        );
+    }
+
+    // Tampilan utama aplikasi setelah login
+    return (
+        <div className="min-h-screen bg-gray-100">
+            {user && <Navbar user={user} setPage={setPage} onLogout={handleLogout} hasUnreadChat={hasUnreadChat} />}
+            <main className="p-4 md:p-6">
+                {renderPage()}
+            </main>
+        </div>
+    );
+}
